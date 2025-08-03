@@ -1,4 +1,4 @@
-package com.example.manong_application
+package com.manong.app
 
 import io.flutter.embedding.android.FlutterActivity
 

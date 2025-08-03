@@ -1,8 +1,22 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Permissions -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
     <application
         android:label="manong_application"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+
+        <!-- Google Maps API Key -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="AIzaSyA_YAEjghqFM4JEzp63zsbzdd0Mpo7ULqA" />
+
+        <meta-data
+            android:name="com.google.firebase.auth.API_KEY"
+            android:value="6LdzV5UrAAAAACED6WMIzV7VQfQmbS5h6MLidd17"/>
+            
         <activity
             android:name=".MainActivity"
             android:exported="true"

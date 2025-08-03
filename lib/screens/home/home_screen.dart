@@ -1,13 +1,21 @@
 
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:manong_application/api/auth_service.dart';
 import 'package:manong_application/api/service-item.dart';
 import 'package:manong_application/models/service_item.dart';
+import 'package:manong_application/providers/bottom_nav_provider.dart';
 import 'package:manong_application/theme/colors.dart';
+import 'package:manong_application/widgets/gradient_header_container.dart';
 import 'package:manong_application/widgets/gradient_text.dart';
 import 'package:manong_application/widgets/manong_icon.dart';
 import 'package:manong_application/widgets/service_card.dart';
+import 'package:provider/provider.dart';
 
 class HomeScreen extends StatefulWidget {
+  final String? token;
+  const HomeScreen({super.key, this.token});
+
   @override
   _HomeScreenState createState() => _HomeScreenState();
 }
@@ -15,7 +23,6 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   List<ServiceItem> _allServices = [];
   List<ServiceItem> _filteredServices = [];
-  String _searchQuery = '';
 
   final TextEditingController _firstSearchController = TextEditingController();
   final TextEditingController _secondSearchController = TextEditingController();
@@ -34,7 +41,6 @@ class _HomeScreenState extends State<HomeScreen> {
   void _filterServices(String query) {
     final lowerQuery = query.toLowerCase();
     setState(() {
-      _searchQuery = query;
       _filteredServices = _allServices.where((service) {
         return service.title.toLowerCase().contains(lowerQuery) ||
                 service.description.toLowerCase().contains(lowerQuery);
@@ -49,12 +55,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    
+
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: AppColorScheme.backgroundGrey,
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
-            expandedHeight: 280,
+            expandedHeight: 320,
             floating: false,
             pinned: true,
             snap: false,
@@ -64,105 +72,91 @@ class _HomeScreenState extends State<HomeScreen> {
                 final collapsed = top <= kToolbarHeight + MediaQuery.of(context).padding.top;
 
                 return FlexibleSpaceBar(
-                  background: Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          AppColorScheme.royalBlue,
-                          AppColorScheme.deepNavyBlue,
+                  background: GradientHeaderContainer(
+                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    borderRadius: BorderRadius.vertical(bottom: Radius.circular(32)),
+                    children: [
+                      SizedBox(height: 20),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Flexible(
+                            child: manongIcon()
+                          ),
+                          SizedBox(width: 4),
+                          GradientText(
+                            text: 'Manong App',
+                            style: TextStyle(
+                              fontSize: 32,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            gradient: LinearGradient(
+                              colors: [
+                                AppColorScheme.goldLight,
+                                AppColorScheme.gold,
+                                AppColorScheme.goldDeep,
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                          ),
                         ],
                       ),
-                    ),
-
-                    child: SafeArea(
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        child: Column(
-                          children: [
-                            SizedBox(height: 20),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                ManongIcon(),
-                                SizedBox(width: 4),
-                                GradientText(
-                                  text: 'Manong App',
-                                  style: TextStyle(
-                                    fontSize: 32,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      AppColorScheme.goldLight,
-                                      AppColorScheme.gold,
-                                      AppColorScheme.goldDeep,
-                                    ],
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            SizedBox(height: 16),
-                            Text(
-                              'Your trusted on-demand service platform.\nConnect with skilled professionals for all your home needs!',
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.grey[100],
-                                height: 1.3,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                            SizedBox(height: 16),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.location_on, color: Colors.grey[400], size: 16),
-                                SizedBox(width: 4),
-                                Text(
-                                  'Available in Metro Manila',
-                                  style: TextStyle(
-                                    color: Colors.grey[400],
-                                    fontSize: 14,
-                                  ),
-                                ),
-                                SizedBox(width: 24),
-                                Icon(Icons.access_time, color: Colors.grey[400], size: 16),
-                                SizedBox(width: 4),
-                                Text(
-                                  '24/7 Service',
-                                  style: TextStyle(
-                                    color: Colors.grey[400],
-                                    fontSize: 14,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            SizedBox(height: 16),
-                            Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 12),
-                              child: TextField(
-                                controller: _firstSearchController,
-                                onChanged: _changeSecondSearch,
-                                decoration: InputDecoration(
-                                  hintText: 'Search services...',
-                                  prefixIcon: Icon(Icons.search),
-                                  filled: true,
-                                  fillColor: Colors.white,
-                                  contentPadding: EdgeInsets.symmetric(vertical: 0, horizontal: 16),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(30),
-                                    borderSide: BorderSide.none,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
+                      SizedBox(height: 16),
+                      Text(
+                        'Your trusted on-demand service platform.\nConnect with skilled professionals for all your home needs!',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: AppColorScheme.backgroundGrey,
+                          height: 1.3,
                         ),
+                        textAlign: TextAlign.center,
                       ),
-                    ),
+                      SizedBox(height: 16),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.location_on, color: Colors.grey[400], size: 16),
+                          SizedBox(width: 4),
+                          Text(
+                            'Available in Metro Manila',
+                            style: TextStyle(
+                              color: Colors.grey[400],
+                              fontSize: 14,
+                            ),
+                          ),
+                          SizedBox(width: 24),
+                          Icon(Icons.access_time, color: Colors.grey[400], size: 16),
+                          SizedBox(width: 4),
+                          Text(
+                            '24/7 Service',
+                            style: TextStyle(
+                              color: Colors.grey[400],
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 16),
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 12),
+                        child: TextField(
+                          controller: _firstSearchController,
+                          onChanged: _changeSecondSearch,
+                          decoration: InputDecoration(
+                            hintText: 'Search services...',
+                            prefixIcon: Icon(Icons.search),
+                            filled: true,
+                            fillColor: Colors.white,
+                            contentPadding: EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(30),
+                              borderSide: BorderSide.none,
+                            ),
+                          ),
+                        ),
+                      )
+                    ],
                   ),
 
                   title: collapsed 
@@ -170,8 +164,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     padding: EdgeInsets.only(top: 20, left: 20, right: 20),
                     child: Row(
                         children: [
-                          ManongIcon(),
-                          SizedBox(width: 8),
+                          manongIcon(size: 40, fit: BoxFit.contain),
+                          SizedBox(width: 4),
                           Expanded(
                             child: TextField(
                               controller: _secondSearchController,
@@ -190,10 +184,13 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                           ),
                           SizedBox(width: 8),
-                          CircleAvatar(
-                            backgroundColor: Colors.white,
-                            child: Icon(Icons.person, color: Colors.grey[800]),
-                          ),
+                          GestureDetector(
+                            onTap: () => FlutterSecureStorage().read(key: 'token').toString().isEmpty ? Navigator.pushNamed(context, '/register') : Provider.of<BottomNavProvider>(context, listen: false).changeIndex(1),
+                            child: CircleAvatar(
+                              backgroundColor: Colors.white,
+                              child: Icon(Icons.person, color: Colors.grey[800]),
+                            ),
+                          )
                         ]
                     ),
                   ) : null,
@@ -202,11 +199,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 );
               },
             ),
-            backgroundColor: AppColorScheme.royalBlue,
+            backgroundColor: AppColorScheme.royalBlueDark,
           ),
 
           SliverToBoxAdapter(
-            child: Padding(
+            child: Container(
               padding: EdgeInsets.all(24),
               child: Column(
                 children: [
@@ -245,8 +242,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         delegate: SliverChildBuilderDelegate(
                           (context, index) {
                             final service = _filteredServices[index];
-                            final cardColor = AppColorScheme
-                                .serviceColors[index % AppColorScheme.serviceColors.length];
+                            final cardColor = AppColorScheme.serviceColors[index % AppColorScheme.serviceColors.length];
                             return ServiceCard(
                               service: service,
                               iconColor: cardColor,
