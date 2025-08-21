@@ -7,14 +7,18 @@ class GradientHeaderContainer extends StatelessWidget {
   final CrossAxisAlignment? crossAxisAlignment;
   final List<Widget> children;
   final BorderRadiusGeometry? borderRadius;
+  final double? height;
+  final double? width;
 
-  GradientHeaderContainer({
+  const GradientHeaderContainer({
     super.key,
     this.padding,
     this.mainAxisAlignment,
     this.crossAxisAlignment,
     this.borderRadius,
     required this.children,
+    this.height,
+    this.width,
   });
 
   @override
@@ -26,13 +30,15 @@ class GradientHeaderContainer extends StatelessWidget {
           height: double.infinity,
         ),
         Container(
+          width: width ?? double.infinity,
+          height: height,
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
+                const Color.fromARGB(248, 79, 119, 184),
                 AppColorScheme.royalBlue,
-                AppColorScheme.deepNavyBlue,
               ],
             ),
             borderRadius: borderRadius ?? BorderRadius.zero,

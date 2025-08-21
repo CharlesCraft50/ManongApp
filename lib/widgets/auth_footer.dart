@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:manong_application/theme/colors.dart';
 
 class AuthFooter extends StatelessWidget {
+  const AuthFooter({super.key});
+
   @override
   Widget build(BuildContext context) {
     // TODO: implement build
@@ -44,7 +46,7 @@ class AuthFooter extends StatelessWidget {
                       padding: EdgeInsets.symmetric(horizontal: 52, vertical: 16),
                     ),
                     onPressed: () {
-
+                      Navigator.pushNamed(context, '/register');
                     },
                     child: Text('Login', style: TextStyle(fontSize: 16, color: Colors.white),),
                   ),

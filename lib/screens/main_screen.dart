@@ -1,40 +1,54 @@
 import 'package:flutter/material.dart';
-import 'package:manong_application/main.dart';
 import 'package:manong_application/providers/bottom_nav_provider.dart';
-import 'package:manong_application/screens/favorites/favorite_screen.dart';
 import 'package:manong_application/screens/home/home_screen.dart';
 import 'package:manong_application/screens/profile/profile_screen.dart';
+import 'package:manong_application/screens/service_requests/service_requests_screen.dart';
 import 'package:manong_application/theme/colors.dart';
 import 'package:manong_application/api/auth_service.dart';
 import 'package:manong_application/widgets/auth_footer.dart';
+import 'package:manong_application/widgets/bottom_nav_swipe.dart';
 import 'package:provider/provider.dart';
 
 class MainScreen extends StatefulWidget {
+  const MainScreen({super.key});
+
   @override
   State<MainScreen> createState() => _MainScreenState();
 }
 
 class _MainScreenState extends State<MainScreen> {
-  int _selectedIndex = 0;
   String? _token;
 
-  AuthService _authService = AuthService();
-  
-  final List<Widget> _pages = [
+  final AuthService _authService = AuthService();
+  late final PageController _pageController = PageController();
+  bool isLoading = true;
+
+  final List<Widget> _pages = const [
     HomeScreen(),
-    FavoriteScreen(),
+    ServiceRequestsScreen(),
     ProfileScreen(),
   ];
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
+    Provider.of<BottomNavProvider>(
+      context,
+      listen: false,
+    ).setController(_pageController);
     _loadToken();
   }
 
   Future<void> _loadToken() async {
-    final token = await _authService.getToken();
+    setState(() {
+      isLoading = true;
+    });
+
+    final token = await _authService.getLaravelToken();
+
+    setState(() {
+      isLoading = false;
+    });
 
     if (token == null) {
       return;
@@ -43,46 +57,58 @@ class _MainScreenState extends State<MainScreen> {
     setState(() {
       _token = token;
     });
-
   }
-  
+
   @override
   Widget build(BuildContext context) {
-
-    final navProvider = Provider.of<BottomNavProvider>(navigatorKey.currentContext!);
+    final navProvider = Provider.of<BottomNavProvider>(context);
 
     return Scaffold(
       backgroundColor: Colors.white,
       extendBody: false,
-      body: IndexedStack(
-        index: navProvider.selectedindex,
-        children: _pages,
-      ),
-      bottomNavigationBar: _token != null
-        ? BottomNavigationBar(
-          currentIndex: navProvider.selectedindex,
-          backgroundColor: AppColorScheme.backgroundGrey,
-          selectedItemColor: AppColorScheme.deepNavyBlue,
-          unselectedItemColor: Colors.grey,
-          onTap: navProvider.changeIndex,
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home),
-              label: "Home",
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.favorite),
-              label: "Favorites",
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.person),
-              label: "Profile",
-            ),
-          ],
-      )
+      body: _token != null
+          ? BottomNavSwipe(
+              pages: _pages,
+              pageController: _pageController,
+              currentIndex: navProvider.selectedindex,
+              onPageChanged: (index) =>
+                  setState(() => navProvider.setIndex(index)),
+              onItemTapped: (index) {
+                setState(() => navProvider.changeIndex(index));
+                _pageController.animateToPage(
+                  index,
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                );
+              },
+            )
+          : Stack(
+              children: [
+                // Main content
+                const Positioned.fill(
+                  child: HomeScreen(), // or any widget you want behind
+                ),
 
-      : AuthFooter(),
-      
+                // Footer pinned at bottom
+                Align(
+                  alignment: Alignment.bottomCenter,
+                  child: isLoading
+                      ? const SizedBox(
+                          height: 10,
+                          child: CircularProgressIndicator(
+                            color: AppColorScheme.royalBlue,
+                          ),
+                        )
+                      : const AuthFooter(),
+                ),
+              ],
+            ),
     );
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
   }
 }

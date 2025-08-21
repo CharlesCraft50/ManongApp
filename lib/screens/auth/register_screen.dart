@@ -29,6 +29,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
     });
 
     if (_formKey.currentState!.validate()) {
+      
+      if (phone == null || phone!.number.isEmpty) {
+        setState(() {
+          _isLoading = false;
+        });
+
+        ScaffoldMessenger.of(navigatorKey.currentContext!).showSnackBar(
+          SnackBar(content: Text('Phone number cannot be empty')),
+        );
+
+        return;
+      }
+
       authService.verifyPhoneNumber(
         phoneNumber: phone!.completeNumber,
         onAutoVerified:(credential) async {
@@ -75,6 +88,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             arguments: {
               'verificationId': verificationId,
               'authService': authService,
+              'phoneNumber': phone!.completeNumber,
             }
           );
         },
@@ -124,11 +138,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       selectedCountry = country.code;
                     });
                   },
-                  validator:(p0) {
-                    if (p0 == null || p0.number.isEmpty) {
+                  validator:(phone) {
+                    if (phone == null || phone.number.isEmpty) {
                       return 'Please enter your phone number';
                     } else {
-                      return 'Invalid phone number';
+                      return null;
                     }
                   },
                 ),

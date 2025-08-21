@@ -6,7 +6,7 @@ Widget manongIcon ({
   EdgeInsetsGeometry padding = const EdgeInsets.all(8)
 }) {
   return Image.asset(
-      'assets/logo.png',
+      'assets/icon/logo.png',
       width: size,
       height: size,
       fit: fit,
