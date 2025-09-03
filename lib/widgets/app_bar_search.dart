@@ -1,17 +1,17 @@
 import "package:flutter/material.dart";
-import "package:manong_application/theme/colors.dart";
+import "package:manong_application/widgets/search_input.dart";
 
 class AppBarSearch extends StatefulWidget implements PreferredSizeWidget {
   final String title;
   final Function()? onBackTap;
-  final TextEditingController? controller;
+  final TextEditingController controller;
   final Function(String) onChanged;
 
   const AppBarSearch({
     super.key,
     required this.title,
     this.onBackTap,
-    this.controller,
+    required this.controller,
     required this.onChanged,
   });
 
@@ -42,32 +42,9 @@ class _AppBarSearchState extends State<AppBarSearch> {
           Expanded(
             child: SizedBox(
               height: 36,
-              child: Theme(
-                data: Theme.of(context).copyWith(
-                  textSelectionTheme: TextSelectionThemeData(
-                    cursorColor: AppColorScheme.royalBlue,
-                    selectionHandleColor: AppColorScheme.royalBlue,
-                  ),
-                ),
-                child: TextField(
-                  cursorColor: AppColorScheme.royalBlue,
-                  controller: widget.controller,
-                  onChanged: widget.onChanged,
-                  decoration: InputDecoration(
-                    prefixIcon: Icon(Icons.search),
-                    hintText: 'Search...',
-                    filled: true,
-                    fillColor: Colors.white,
-                    contentPadding: const EdgeInsets.symmetric(
-                      vertical: 0,
-                      horizontal: 16,
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(30),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
-                ),
+              child: SearchInput(
+                controller: widget.controller,
+                onChanged: widget.onChanged,
               ),
             ),
           ),

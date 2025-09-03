@@ -40,24 +40,6 @@ class _RouteTrackingScreenState extends State<RouteTrackingScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-
-    if (!_argumentsInitialized) {
-      logger.info(widget.currentLatLng);
-      _currentLatLng = widget.currentLatLng;
-      _manongLatLng = widget.manongLatLng;
-      _manongName = widget.manongName;
-
-      _argumentsInitialized = true;
-
-      if (_currentLatLng != null && _manongLatLng != null) {
-        _getPolyline();
-      } else {
-        setState(() {
-          _error = 'Invalid location data provided';
-          isLoading = false;
-        });
-      }
-    }
   }
 
   @override
@@ -68,6 +50,22 @@ class _RouteTrackingScreenState extends State<RouteTrackingScreen> {
 
   void _initializeComponents() {
     logger = Logger('map_screen');
+
+    _currentLatLng = widget.currentLatLng;
+    _manongLatLng = widget.manongLatLng;
+    _manongName = widget.manongName;
+    _argumentsInitialized = true;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_currentLatLng != null && _manongLatLng != null) {
+        _getPolyline();
+      } else {
+        setState(() {
+          _error = 'Invalid location data provided';
+          isLoading = false;
+        });
+      }
+    });
   }
 
   void _getPolyline() async {

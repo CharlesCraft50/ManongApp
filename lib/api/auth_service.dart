@@ -8,7 +8,7 @@ import 'package:manong_application/models/app_user.dart';
 
 class AuthService {
   final storage = FlutterSecureStorage();
-  final String? baseUrl = dotenv.env['APP_URL'];
+  final String? baseUrl = dotenv.env['APP_URL_API'];
 
   final Logger logger = Logger('auth_service');
 
@@ -94,8 +94,6 @@ class AuthService {
   }
 
   Future<Map<String, dynamic>> registerOrLoginUser(String phoneNumber) async {
-    final baseUrl = dotenv.env['APP_URL'];
-
     try {
       final response = await http
           .post(
@@ -110,7 +108,7 @@ class AuthService {
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final data = json.decode(response.body);
-        await storage.write(key: 'laravel_token', value: data['token']);
+        await storage.write(key: 'node_token', value: data['token']);
         return data;
       } else if (response.statusCode == 422) {
         final errors = json.decode(response.body);
@@ -138,12 +136,12 @@ class AuthService {
     }
   }
 
-  Future<String?> getLaravelToken() async {
-    return await storage.read(key: 'laravel_token');
+  Future<String?> getNodeToken() async {
+    return await storage.read(key: 'node_token');
   }
 
   Future<bool> isLoggedIn() async {
-    final token = await getLaravelToken();
+    final token = await getNodeToken();
     return token != null && token.isNotEmpty;
   }
 
@@ -151,15 +149,14 @@ class AuthService {
     Exception? lastException;
 
     try {
-      final token = await getLaravelToken();
+      final token = await getNodeToken();
 
       if (token != null && baseUrl != null) {
         final response = await http
             .post(
               Uri.parse('$baseUrl/logout'),
               headers: {
-                'Content-Type':
-                    'application/json', // Fixed typo: was 'Application'
+                'Content-Type': 'application/json',
                 'Accept': 'application/json',
                 'Authorization': 'Bearer $token',
               },
@@ -169,18 +166,18 @@ class AuthService {
         // Log the response for debugging
         if (response.statusCode != 200) {
           logger.warning(
-            'Laravel logout warning: ${response.statusCode} - ${response.body}',
+            'Node logout warning: ${response.statusCode} - ${response.body}',
           );
         }
       }
     } catch (e) {
-      logger.severe('Laravel logout failed: $e');
+      logger.severe('Node logout failed: $e');
       lastException = Exception('Server logout failed: $e');
     }
 
     // Always clear local storage regardless of server response
     try {
-      await storage.delete(key: 'laravel_token');
+      await storage.delete(key: 'node_token');
       await storage.delete(
         key: 'token',
       ); // Also clear the old token if it exists
@@ -205,7 +202,7 @@ class AuthService {
 
   Future<AppUser> getMyProfile() async {
     try {
-      final token = await getLaravelToken();
+      final token = await getNodeToken();
 
       if (token == null) {
         throw Exception('No authentication token found');
@@ -213,7 +210,7 @@ class AuthService {
 
       final response = await http
           .get(
-            Uri.parse('$baseUrl/get'),
+            Uri.parse('$baseUrl/me'),
             headers: {
               'Authorization': 'Bearer $token',
               'Accept': 'application/json',
@@ -225,7 +222,7 @@ class AuthService {
         return AppUser.fromJson(jsonDecode(response.body));
       } else if (response.statusCode == 401) {
         // Token might be expired, clear it
-        await storage.delete(key: 'laravel_token');
+        await storage.delete(key: 'node_token');
         throw Exception('Session expired. Please log in again.');
       } else {
         throw Exception(
@@ -249,7 +246,7 @@ class AuthService {
 
   Future<Map<String, dynamic>> updateProfile(String name, String email) async {
     try {
-      final token = await getLaravelToken();
+      final token = await getNodeToken();
 
       final response = await http
           .post(

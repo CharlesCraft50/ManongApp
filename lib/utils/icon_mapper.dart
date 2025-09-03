@@ -122,6 +122,17 @@ IconData getIconFromName(String iconName) {
     case 'directions_car':
       return Icons.directions_car;
 
+    case 'cash':
+      return Icons.money;
+    case 'card':
+      return Icons.credit_card;
+    case 'gcash':
+      return Icons.account_balance_wallet;
+    case 'paypal':
+      return Icons.paypal;
+    case 'maya':
+      return Icons.account_balance;
+
     // Default / Fallback
     default:
       return Icons.miscellaneous_services;

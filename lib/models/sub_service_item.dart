@@ -6,7 +6,7 @@ class SubServiceItem {
   final int? cost;
   final int? fee;
   final int gross;
-  final int isActive;
+  final bool isActive;
 
   SubServiceItem({
     required this.id,
@@ -18,17 +18,17 @@ class SubServiceItem {
     required this.gross,
     required this.isActive,
   });
-  
+
   factory SubServiceItem.fromJson(Map<String, dynamic> json) {
     return SubServiceItem(
-      id: json['id'], 
+      id: json['id'],
       title: json['title'],
-      iconName: json['icon_name'],
-      description: json['description'], 
-      cost: json['cost'], 
-      fee: json['fee'], 
-      gross: json['gross'], 
-      isActive: json['is_active'],
+      iconName: json['iconName'],
+      description: json['description'],
+      cost: json['cost'],
+      fee: json['fee'],
+      gross: json['gross'],
+      isActive: json['isActive'],
     );
   }
 }

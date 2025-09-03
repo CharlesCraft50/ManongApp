@@ -10,7 +10,8 @@ import 'package:manong_application/widgets/bottom_nav_swipe.dart';
 import 'package:provider/provider.dart';
 
 class MainScreen extends StatefulWidget {
-  const MainScreen({super.key});
+  final int? index;
+  const MainScreen({super.key, this.index});
 
   @override
   State<MainScreen> createState() => _MainScreenState();
@@ -32,10 +33,8 @@ class _MainScreenState extends State<MainScreen> {
   @override
   void initState() {
     super.initState();
-    Provider.of<BottomNavProvider>(
-      context,
-      listen: false,
-    ).setController(_pageController);
+    final navProvider = Provider.of<BottomNavProvider>(context, listen: false);
+    navProvider.setController(_pageController);
     _loadToken();
   }
 
@@ -44,7 +43,7 @@ class _MainScreenState extends State<MainScreen> {
       isLoading = true;
     });
 
-    final token = await _authService.getLaravelToken();
+    final token = await _authService.getNodeToken();
 
     setState(() {
       isLoading = false;

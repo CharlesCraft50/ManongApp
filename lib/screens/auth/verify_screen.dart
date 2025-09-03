@@ -5,10 +5,20 @@ import 'package:flutter_pin_code_fields/flutter_pin_code_fields.dart';
 import 'package:manong_application/api/auth_service.dart';
 import 'package:manong_application/main.dart';
 import 'package:manong_application/theme/colors.dart';
+import 'package:manong_application/utils/snackbar_utils.dart';
 import 'package:manong_application/widgets/step_appbar.dart';
 
 class VerifyScreen extends StatefulWidget {
-  const VerifyScreen({super.key});
+  final AuthService authService;
+  final String verificationId;
+  final String phoneNumber;
+
+  const VerifyScreen({
+    super.key,
+    required this.authService,
+    required this.verificationId,
+    required this.phoneNumber,
+  });
 
   @override
   State<VerifyScreen> createState() => _VerifyScreenState();
@@ -26,13 +36,19 @@ class _VerifyScreenState extends State<VerifyScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final args = ModalRoute.of(context)!.settings.arguments as Map;
-    _authService = args['authService'];
-    _verificationId = args['verificationId'];
-    _phoneNumber = args['phoneNumber'];
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _authService = widget.authService;
+    _verificationId = widget.verificationId;
+    _phoneNumber = widget.phoneNumber;
   }
 
   void _verifySmsCode(String smsCode) async {
+    if (!mounted) return;
+
     setState(() {
       _isError = false;
       _isSuccess = false;
@@ -86,9 +102,7 @@ class _VerifyScreenState extends State<VerifyScreen> {
           errorMessage = 'Verification failed: ${e.message}';
       }
 
-      ScaffoldMessenger.of(navigatorKey.currentContext!).showSnackBar(
-        SnackBar(content: Text(errorMessage), backgroundColor: Colors.red),
-      );
+      SnackBarUtils.showError(navigatorKey.currentContext!, errorMessage);
     } catch (e) {
       setState(() {
         _isError = true;
@@ -96,12 +110,17 @@ class _VerifyScreenState extends State<VerifyScreen> {
         _isLoading = false;
       });
 
-      ScaffoldMessenger.of(navigatorKey.currentContext!).showSnackBar(
-        SnackBar(
-          content: Text('An error occurred: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (e.toString().contains('is invalid')) {
+        SnackBarUtils.showError(
+          navigatorKey.currentContext!,
+          'The verification code from SMS is invalid!',
+        );
+      } else {
+        SnackBarUtils.showError(
+          navigatorKey.currentContext!,
+          'An error occurred: $e',
+        );
+      }
     }
   }
 
@@ -114,19 +133,12 @@ class _VerifyScreenState extends State<VerifyScreen> {
       // Navigate back to phone input screen or trigger resend
       Navigator.pop(context);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Please request a new verification code'),
-          backgroundColor: Colors.orange,
-        ),
+      SnackBarUtils.showWarning(
+        context,
+        'Please request a new verification code',
       );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to resend code: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      SnackBarUtils.showError(context, 'Failed to resend code: $e');
     } finally {
       setState(() {
         _isLoading = false;

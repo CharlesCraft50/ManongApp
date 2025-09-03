@@ -1,12 +1,13 @@
 import 'dart:io';
 
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:manong_application/models/app_user.dart';
+import 'package:manong_application/models/payment_status.dart';
 import 'package:manong_application/models/service_item.dart';
 import 'package:manong_application/models/sub_service_item.dart';
 import 'package:manong_application/models/urgency_level.dart';
 
 class ServiceRequest {
+  final int? id;
   final int serviceItemId;
   final int subServiceItemId;
   final int? manongId;
@@ -19,12 +20,17 @@ class ServiceRequest {
   final String? notes;
   final int? rating;
   final String? status;
+  final double? total;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
+  final PaymentStatus? paymentStatus;
   final ServiceItem? serviceItem;
   final SubServiceItem? subServiceItem;
   final UrgencyLevel? urgencyLevel;
   final AppUser? manong;
 
   ServiceRequest({
+    this.id,
     required this.serviceItemId,
     required this.subServiceItemId,
     this.manongId,
@@ -37,6 +43,10 @@ class ServiceRequest {
     this.notes,
     this.rating,
     this.status,
+    this.total,
+    this.createdAt,
+    this.updatedAt,
+    this.paymentStatus,
     this.serviceItem,
     this.subServiceItem,
     this.urgencyLevel,
@@ -45,30 +55,50 @@ class ServiceRequest {
 
   factory ServiceRequest.fromJson(Map<String, dynamic> json) {
     return ServiceRequest(
-      serviceItemId: json['service_item_id'],
-      subServiceItemId: json['sub_service_item_id'],
-      manongId: json['manong_id'],
-      otherServiceName: json['other_service_name'],
-      serviceDetails: json['service_details'],
-      urgencyLevelIndex: json['urgency_level_id'] ?? 0,
-      images:
-          (json['images_path'] as List<dynamic>?)
-              ?.map((path) => File(path.toString()))
-              .toList() ??
-          [],
-      latitude: double.parse(json['latitude']),
-      longitude: double.parse(json['longitude']),
+      id: json['id'] != null ? json['id'] as int : null,
+      serviceItemId: int.tryParse(json['serviceItemId'].toString()) ?? 0,
+      subServiceItemId: int.tryParse(json['subServiceItemId'].toString()) ?? 0,
+      manongId: json['manongId'] != null
+          ? int.tryParse(json['manongId'].toString())
+          : null,
+      otherServiceName: json['otherServiceName'],
+      serviceDetails: json['serviceDetails'],
+      urgencyLevelIndex: int.tryParse(json['urgencyLevelId'].toString()) ?? 0,
+      images: json['imagesPath'] == null
+          ? []
+          : (json['imagesPath'] is List
+                ? (json['imagesPath'] as List)
+                      .map((path) => File(path.toString()))
+                      .toList()
+                : [File(json['imagesPath'].toString())]),
+      latitude: (json['latitude'] is num)
+          ? (json['latitude'] as num).toDouble()
+          : double.tryParse(json['latitude'].toString()) ?? 0.0,
+      longitude: (json['longitude'] is num)
+          ? (json['longitude'] as num).toDouble()
+          : double.tryParse(json['longitude'].toString()) ?? 0.0,
       notes: json['notes'],
       rating: json['rating'],
       status: json['status'],
-      serviceItem: json['service_item'] != null
-          ? ServiceItem.fromJson(json['service_item'])
+      total: json['total'],
+      paymentStatus: PaymentStatus.values.firstWhere(
+        (e) => e.toString() == json['paymentStatus'].toString(),
+        orElse: () => PaymentStatus.unpaid,
+      ),
+      createdAt: json['createdAt'] != null
+          ? DateTime.parse(json['createdAt'].toString())
           : null,
-      subServiceItem: json['sub_service_item'] != null
-          ? SubServiceItem.fromJson(json['sub_service_item'])
+      updatedAt: json['updatedAt'] != null
+          ? DateTime.parse(json['updatedAt'].toString())
           : null,
-      urgencyLevel: json['urgency_level'] != null
-          ? UrgencyLevel.fromJson(json['urgency_level'])
+      serviceItem: json['serviceItem'] != null
+          ? ServiceItem.fromJson(json['serviceItem'])
+          : null,
+      subServiceItem: json['subServiceItem'] != null
+          ? SubServiceItem.fromJson(json['subServiceItem'])
+          : null,
+      urgencyLevel: json['urgencyLevel'] != null
+          ? UrgencyLevel.fromJson(json['urgencyLevel'])
           : null,
       manong: json['manong'] != null ? AppUser.fromJson(json['manong']) : null,
     );
@@ -88,5 +118,32 @@ class ServiceRequest {
       'notes': notes,
       'rating': rating,
     };
+  }
+
+  @override
+  String toString() {
+    return 'ServiceRequest('
+        'id: $id, '
+        'serviceItemId: $serviceItemId, '
+        'subServiceItemId: $subServiceItemId, '
+        'manongId: $manongId, '
+        'otherServiceName: $otherServiceName, '
+        'serviceDetails: $serviceDetails, '
+        'urgencyLevelIndex: $urgencyLevelIndex, '
+        'images: ${images.map((f) => f.path).toList()}, '
+        'latitude: $latitude, '
+        'longitude: $longitude, '
+        'notes: $notes, '
+        'rating: $rating, '
+        'status: $status, '
+        'total: $total, '
+        'paymentStatus: $paymentStatus, '
+        'paymentStatus: $createdAt, '
+        'paymentStatus: $updatedAt, '
+        'serviceItem: $serviceItem, '
+        'subServiceItem: $subServiceItem, '
+        'urgencyLevel: $urgencyLevel, '
+        'manong: $manong'
+        ')';
   }
 }

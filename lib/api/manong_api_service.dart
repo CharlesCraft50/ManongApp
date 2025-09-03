@@ -1,113 +1,126 @@
 import 'dart:convert';
 
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:logging/logging.dart';
 import 'package:manong_application/api/auth_service.dart';
-import 'package:manong_application/models/service_request.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
+import 'package:manong_application/models/manong.dart';
 
 class ManongApiService {
-  final String? baseUrl = dotenv.env['APP_URL'];
-
+  final String? baseUrl = dotenv.env['APP_URL_API'];
   final Logger logger = Logger('ManongApiService');
 
-  Future<Map<String, dynamic>?> uploadServiceRequest(
-    ServiceRequest details,
-  ) async {
+  Future<Map<String, dynamic>> fetchManongs({
+    required int serviceItemId,
+    int page = 1,
+    int limit = 10,
+  }) async {
     try {
       if (baseUrl == null) {
         throw Exception('Base URL is not configured.');
       }
 
-      final token = await AuthService().getLaravelToken();
+      final token = await AuthService().getNodeToken();
 
-      final request = http.MultipartRequest(
-        'POST',
-        Uri.parse('$baseUrl/service-requests'),
+      final uri = Uri.parse('$baseUrl/manongs').replace(
+        queryParameters: {'page': page.toString(), 'limit': limit.toString()},
       );
 
-      request.fields['service_item_id'] = details.serviceItemId.toString();
-      request.fields['sub_service_item_id'] = details.subServiceItemId
-          .toString();
-      if (details.otherServiceName != null) {
-        request.fields['other_service_name'] = details.otherServiceName!;
-      }
-      request.fields['service_details'] = details.serviceDetails ?? '';
-      request.fields['urgency_level_id'] = (details.urgencyLevelIndex + 1)
-          .toString();
+      final response = await http.post(
+        uri,
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({'serviceItemId': serviceItemId}),
+      );
 
-      for (var i = 0; i < details.images.length; i++) {
-        var imageFile = details.images[i];
-        var stream = http.ByteStream(imageFile.openRead().cast());
-        var length = await imageFile.length();
+      final responseBody = response.body;
+      final jsonData = jsonDecode(responseBody);
 
-        var multipartFile = http.MultipartFile(
-          'images[]',
-          stream,
-          length,
-          filename: imageFile.path.split('/').last,
-        );
-
-        request.files.add(multipartFile);
-      }
-
-      request.fields['latitude'] = details.latitude.toString();
-      request.fields['longitude'] = details.longitude.toString();
-
-      // Headers
-      request.headers['Authorization'] = 'Bearer $token';
-      request.headers['Accept'] = 'application/json';
-
-      logger.info(request.fields);
-      logger.info(request.fields.entries);
-
-      var response = await request.send();
-      var responseBody = await response.stream.bytesToString();
-
-      if (response.statusCode == 200) {
-        return jsonDecode(responseBody);
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return jsonData['data'];
       } else {
-        logger.warning('Upload failed with status: ${response.statusCode}');
+        logger.warning('Fetch manongs failed: ${response.statusCode}');
         logger.warning('Response: $responseBody');
         throw Exception(
-          'Upload failed with status ${response.statusCode}: $responseBody',
+          'Manongs failed with status ${response.statusCode}: $responseBody',
         );
       }
     } catch (e) {
-      logger.severe('Error upload problem $e');
+      logger.severe('Error getting manongs $e');
       rethrow;
     }
   }
 
-  Future<Map<String, dynamic>?> fetchServiceRequests() async {
+  Future<Manong>? fetchAManong(int id) async {
     try {
       if (baseUrl == null) {
         throw Exception('Base URL is not configured.');
       }
 
-      final token = await AuthService().getLaravelToken();
+      final token = AuthService().getNodeToken();
 
-      final response = await http
-          .get(
-            Uri.parse('$baseUrl/service-requests'),
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-              'Authorization': 'Bearer $token',
-            },
-          )
-          .timeout(const Duration(seconds: 30));
+      final response = await http.get(
+        Uri.parse('$baseUrl/manongs/$id'),
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      final responseBody = response.body;
+
+      final jsonData = jsonDecode(responseBody);
 
       if (response.statusCode == 200) {
-        return jsonDecode(response.body);
+        return Manong.fromJson(jsonData['data']);
       } else {
+        logger.warning('Fetch the manong failed: ${response.statusCode}');
+        logger.warning('Response: $responseBody');
         throw Exception(
-          'Failed to load service requests: ${response.statusCode} - ${response.body}',
+          'Manong failed with status ${response.statusCode}: $responseBody',
         );
       }
     } catch (e) {
-      logger.severe('Error fetching service requests $e');
+      logger.severe('Error getting the manong $e');
+      rethrow;
     }
-    return null;
+  }
+
+  Future<Map<String, dynamic>?> chooseManong(int id, int manongId) async {
+    try {
+      if (baseUrl == null) {
+        throw Exception('Base URL is not configured.');
+      }
+
+      final token = await AuthService().getNodeToken();
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/service-requests/$id/choose-manong'),
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({'manongId': manongId, 'status': 'pending'}),
+      );
+
+      final responseBody = response.body;
+
+      if (response.statusCode == 200) {
+        return jsonDecode(responseBody);
+      } else {
+        logger.warning('Response: $responseBody');
+        throw Exception(
+          'Manong failed to update with status ${response.statusCode}: $responseBody',
+        );
+      }
+    } catch (e) {
+      logger.severe('Error choosing manong $e');
+      rethrow;
+    }
   }
 }

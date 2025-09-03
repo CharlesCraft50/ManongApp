@@ -94,7 +94,7 @@ class _SubServiceListScreenState extends State<SubServiceListScreen> {
                                               id: -1,
                                               title: 'Other Service',
                                               gross: 0,
-                                              isActive: 1,
+                                              isActive: true,
                                             ),
                                             'iconColor': iconColor,
                                           },

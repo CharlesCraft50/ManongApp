@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:logging/logging.dart';
-import 'package:manong_application/api/manong_api_service.dart';
+import 'package:manong_application/api/service_request_api_service.dart';
 import 'package:manong_application/main.dart';
+import 'package:manong_application/models/payment_status.dart';
 import 'package:manong_application/models/service_request.dart';
 import 'package:manong_application/providers/bottom_nav_provider.dart';
 import 'package:manong_application/theme/colors.dart';
 import 'package:manong_application/utils/get_location.dart';
 import 'package:manong_application/widgets/app_bar_search.dart';
+import 'package:manong_application/widgets/empty_state_widget.dart';
+import 'package:manong_application/widgets/error_state_widget.dart';
 import 'package:manong_application/widgets/service_request_card.dart';
 import 'package:provider/provider.dart';
 import 'package:latlong2/latlong.dart' as latlong;
@@ -23,7 +26,7 @@ class _ServiceRequestsScreenState extends State<ServiceRequestsScreen> {
   final TextEditingController _searchController = TextEditingController();
   final distance = latlong.Distance();
 
-  late ManongApiService manongApiService;
+  late ServiceRequestApiService manongApiService;
   late Logger logger;
   late BottomNavProvider navProvider;
 
@@ -37,8 +40,17 @@ class _ServiceRequestsScreenState extends State<ServiceRequestsScreen> {
   bool isLoading = true;
   String? _error;
 
+  String _dateSortOrder = 'Descending';
+  final List<String> _sortOptions = ['Descending', 'Ascending'];
+
+  // Requests Pages
+  int _currentPage = 1;
+  final int _limit = 10; // items per page
+  bool _isLoadingMore = false;
+  bool _hasMore = true;
+
   static const statuses = [
-    'All',
+    'To Pay',
     'Pending',
     'Accepted',
     'Completed',
@@ -51,11 +63,15 @@ class _ServiceRequestsScreenState extends State<ServiceRequestsScreen> {
     _initializeComponents();
     _fetchServiceRequests();
     _getCurrentLocation();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _setupScrollListener();
+    });
   }
 
   void _initializeComponents() {
-    logger = Logger('service_requests_list');
-    manongApiService = ManongApiService();
+    logger = Logger('ServiceRequestScreen');
+    manongApiService = ServiceRequestApiService();
     navProvider = Provider.of<BottomNavProvider>(
       navigatorKey.currentContext!,
       listen: false,
@@ -125,33 +141,100 @@ class _ServiceRequestsScreenState extends State<ServiceRequestsScreen> {
     );
   }
 
-  Future<void> _fetchServiceRequests() async {
-    if (!mounted) return;
+  void _setupScrollListener() {
+    _scrollController.addListener(() {
+      if (_scrollController.position.pixels >=
+              _scrollController.position.maxScrollExtent - 200 &&
+          !_isLoadingMore &&
+          _hasMore) {
+        _fetchMoreServiceRequests();
+      }
+    });
+  }
+
+  Future<void> _fetchMoreServiceRequests() async {
+    if (_isLoadingMore || !_hasMore) return; // lock to prevent multiple calls
+
+    setState(() => _isLoadingMore = true);
 
     try {
+      final response = await manongApiService.fetchServiceRequests(
+        page: _currentPage,
+        limit: _limit,
+      );
+
+      if (response == null) {
+        setState(() => _hasMore = false);
+        return;
+      }
+
+      final requests = (response as List<dynamic>)
+          .map((json) => ServiceRequest.fromJson(json as Map<String, dynamic>))
+          .toList();
+
+      setState(() {
+        serviceRequest.addAll(requests);
+        _currentPage++;
+        _isLoadingMore = false;
+        if (requests.length < _limit) _hasMore = false;
+      });
+    } catch (e) {
+      logger.severe('Error fetching more service requests $e');
+      setState(() => _isLoadingMore = false);
+    }
+  }
+
+  Future<void> _fetchServiceRequests({bool loadMore = false}) async {
+    if (!mounted || (!_hasMore && loadMore)) return;
+
+    try {
+      if (loadMore) {
+        setState(() {
+          _isLoadingMore = true;
+        });
+      } else {
+        setState(() {
+          isLoading = true;
+          _error = null;
+          _currentPage = 1;
+          _hasMore = true;
+        });
+      }
+
       setState(() {
         isLoading = true;
         _error = null;
       });
 
-      final response = await manongApiService.fetchServiceRequests();
+      if (loadMore) _isLoadingMore = true;
+
+      final response = await manongApiService.fetchServiceRequests(
+        page: _currentPage,
+        limit: _limit,
+      );
 
       if (!mounted) return;
+
+      setState(() {
+        isLoading = false;
+        _error = null;
+      });
 
       if (response == null) {
         throw Exception('No response from server');
       }
 
-      final requests = response['service_requests'] as List<dynamic>?;
+      final requests = response['data'] as List<dynamic>?;
 
-      if (requests == null) {
-        logger.warning("Service requests list is null");
-        if (mounted) {
-          setState(() {
+      if (requests == null || requests.isEmpty) {
+        setState(() {
+          if (loadMore)
+            _hasMore = false;
+          else
             serviceRequest = [];
-            isLoading = false;
-          });
-        }
+          _isLoadingMore = false;
+        });
+
         return;
       }
 
@@ -159,12 +242,18 @@ class _ServiceRequestsScreenState extends State<ServiceRequestsScreen> {
           .map((json) => ServiceRequest.fromJson(json as Map<String, dynamic>))
           .toList();
 
-      if (mounted) {
-        setState(() {
+      setState(() {
+        if (loadMore) {
+          serviceRequest.addAll(parsedRequests);
+          _isLoadingMore = false;
+        } else {
           serviceRequest = parsedRequests;
           isLoading = false;
-        });
-      }
+        }
+        if (parsedRequests.length < _limit) _hasMore = false;
+      });
+
+      _currentPage++;
 
       logger.info('Fetched ${parsedRequests.length} service requests');
     } catch (e) {
@@ -172,9 +261,13 @@ class _ServiceRequestsScreenState extends State<ServiceRequestsScreen> {
 
       if (mounted) {
         setState(() {
-          serviceRequest = [];
-          isLoading = false;
-          _error = 'Failed to load service requests. Please try again.';
+          if (!loadMore) {
+            serviceRequest = [];
+            isLoading = false;
+            _error = 'Failed to load service requests. Please try again.';
+          } else {
+            _isLoadingMore = false;
+          }
         });
       }
     }
@@ -182,9 +275,16 @@ class _ServiceRequestsScreenState extends State<ServiceRequestsScreen> {
 
   List<ServiceRequest> _getFilteredRequests() {
     List<ServiceRequest> filtered = statusIndex == 0
-        ? List.from(serviceRequest)
+        ? serviceRequest
+              .where((req) => req.paymentStatus == PaymentStatus.unpaid)
+              .toList()
         : serviceRequest
-              .where((req) => req.status == statuses[statusIndex])
+              .where(
+                (req) =>
+                    req.status!.toLowerCase() ==
+                    statuses[statusIndex].toLowerCase(),
+              )
+              .where((req) => req.paymentStatus != PaymentStatus.unpaid)
               .toList();
 
     if (_searchQuery.isNotEmpty) {
@@ -205,6 +305,17 @@ class _ServiceRequestsScreenState extends State<ServiceRequestsScreen> {
       }).toList();
     }
 
+    filtered.sort((a, b) {
+      final aDate = a.createdAt ?? DateTime.fromMicrosecondsSinceEpoch(0);
+      final bDate = b.createdAt ?? DateTime.fromMicrosecondsSinceEpoch(0);
+
+      if (_dateSortOrder == 'Descending') {
+        return bDate.compareTo(aDate);
+      } else {
+        return aDate.compareTo(bDate);
+      }
+    });
+
     return filtered;
   }
 
@@ -223,8 +334,22 @@ class _ServiceRequestsScreenState extends State<ServiceRequestsScreen> {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.end,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
+          DropdownButton<String>(
+            dropdownColor: Colors.white,
+            value: _dateSortOrder,
+            items: _sortOptions.map((option) {
+              return DropdownMenuItem(value: option, child: Text(option));
+            }).toList(),
+            onChanged: (value) {
+              if (value != null) {
+                setState(() {
+                  _dateSortOrder = value;
+                });
+              }
+            },
+          ),
           Text(
             '($count result${count != 1 ? 's' : ''})',
             style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
@@ -250,59 +375,13 @@ class _ServiceRequestsScreenState extends State<ServiceRequestsScreen> {
 
   Widget _buildEmptyState() {
     if (_error != null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.error_outline, size: 45, color: Colors.grey.shade400),
-            const SizedBox(height: 16),
-            Text(
-              _error!,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 16, color: Colors.grey),
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _fetchServiceRequests,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColorScheme.royalBlue,
-                foregroundColor: Colors.white,
-              ),
-              child: const Text('Retry'),
-            ),
-          ],
-        ),
-      );
+      ErrorStateWidget(errorText: _error!, onPressed: _fetchServiceRequests);
     }
 
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            _searchQuery.isEmpty ? Icons.inbox_outlined : Icons.search_off,
-            size: 48,
-            color: Colors.grey.shade400,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            _searchQuery.isEmpty
-                ? 'No service requests found'
-                : 'No results found for "$_searchQuery"',
-            style: const TextStyle(fontSize: 16, color: Colors.grey),
-          ),
-          if (_searchQuery.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            TextButton(
-              onPressed: _clearSearch,
-              child: const Text(
-                'Clear search',
-                style: TextStyle(color: AppColorScheme.royalBlue),
-              ),
-            ),
-          ],
-        ],
-      ),
+    return EmptyStateWidget(
+      searchQuery: _searchQuery,
+      emptyMessage: 'No service requests found',
+      onPressed: _clearSearch,
     );
   }
 
@@ -314,10 +393,20 @@ class _ServiceRequestsScreenState extends State<ServiceRequestsScreen> {
       child: Scrollbar(
         controller: _scrollController,
         child: ListView.builder(
-          itemCount: filteredRequests.length,
+          itemCount: filteredRequests.length + (_isLoadingMore ? 1 : 0),
           physics: const AlwaysScrollableScrollPhysics(),
           controller: _scrollController,
           itemBuilder: (context, index) {
+            if (index >= filteredRequests.length) {
+              return const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(8),
+                  child: CircularProgressIndicator(
+                    color: AppColorScheme.royalBlue,
+                  ),
+                ),
+              );
+            }
             ServiceRequest serviceRequestItem = filteredRequests[index];
 
             final meters = _calculateDistance(serviceRequestItem);
@@ -342,6 +431,15 @@ class _ServiceRequestsScreenState extends State<ServiceRequestsScreen> {
                           serviceRequestItem.manong!.longitude!,
                         ),
                         'manongName': serviceRequestItem.manong!.name,
+                      },
+                    );
+                  } else {
+                    Navigator.pushNamed(
+                      context,
+                      '/manong-list',
+                      arguments: {
+                        'serviceRequest': serviceRequestItem,
+                        'subServiceItem': serviceRequestItem.subServiceItem,
                       },
                     );
                   }
@@ -372,11 +470,11 @@ class _ServiceRequestsScreenState extends State<ServiceRequestsScreen> {
         children: [
           const SizedBox(height: 10),
           _buildStatusRow(),
-          const SizedBox(height: 8),
+          const SizedBox(height: 4),
           _buildResultsInfo(filteredRequests.length),
           Expanded(
             child: Container(
-              margin: const EdgeInsets.all(12),
+              margin: const EdgeInsets.only(top: 4),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(12),
                 color: Colors.white,

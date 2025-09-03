@@ -1,28 +1,25 @@
 import 'package:flutter/material.dart';
 
 class PriceTag extends StatelessWidget {
-  final int min;
-  final int max;
-  final String currency;
-  final TextStyle? style;
+  final double price;
+  final String sign;
+  final TextStyle? textStyle;
 
   const PriceTag({
     super.key,
-    required this.min,
-    required this.max,
-    this.currency = '₱', // default to PHP
-    this.style,
+    required this.price,
+    this.sign = '₱',
+    this.textStyle,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Text(
-      '$currency$min–$max',
-      style: style ??
-          const TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.black87,
-          ),
+    return Row(
+      children: [
+        Text(sign.toString(), style: textStyle),
+        const SizedBox(width: 4),
+        Text(price.toString(), style: textStyle),
+      ],
     );
   }
 }

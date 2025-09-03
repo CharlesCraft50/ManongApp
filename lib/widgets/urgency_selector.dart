@@ -16,69 +16,64 @@ class UrgencySelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      child: Column(
-        spacing: 12,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: levels.asMap().entries.map((entry) {
-          final index = entry.key;
-          UrgencyLevel level = entry.value;
+    return Column(
+      spacing: 12,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: levels.asMap().entries.map((entry) {
+        final index = entry.key;
+        UrgencyLevel level = entry.value;
 
-          return Material(
-            color: activeIndex == index
-                ? AppColorScheme.royalBlueLight
-                : Colors.white60,
+        return Material(
+          color: activeIndex == index
+              ? AppColorScheme.royalBlueLight
+              : Colors.white60,
+          borderRadius: BorderRadius.circular(16),
+          child: InkWell(
+            onTap: () => onSelected(index),
             borderRadius: BorderRadius.circular(16),
-            child: InkWell(
-              onTap: () => onSelected(index),
-              borderRadius: BorderRadius.circular(16),
-              child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                decoration: BoxDecoration(
-                  border: activeIndex == index
-                      ? Border.all(
-                          color: AppColorScheme.royalBlueMedium,
-                          width: 3,
-                        )
-                      : Border.all(color: Colors.grey),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        Text(
-                          level.level,
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                          ),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              decoration: BoxDecoration(
+                border: activeIndex == index
+                    ? Border.all(
+                        color: AppColorScheme.royalBlueMedium,
+                        width: 3,
+                      )
+                    : Border.all(color: Colors.grey),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        level.level,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
                         ),
-                        SizedBox(width: 4),
-                        Text(
-                          level.time,
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        level.time,
+                        style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                      ),
+                    ],
+                  ),
 
-                    Text(
-                      level.price != null
-                          ? '₱ ${level.price!.toStringAsFixed(2)}'
-                          : '',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ],
-                ),
+                  Text(
+                    level.price != null
+                        ? '₱ ${level.price!.toStringAsFixed(2)}'
+                        : '',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ],
               ),
             ),
-          );
-        }).toList(),
-      ),
+          ),
+        );
+      }).toList(),
     );
   }
 }

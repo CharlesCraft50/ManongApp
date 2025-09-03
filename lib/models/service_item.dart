@@ -8,8 +8,8 @@ class ServiceItem {
   final int priceMax;
   final String iconName;
   final String iconColor;
-  final int isActive;
-  final List<SubServiceItem>? subServiceItems;
+  final bool isActive;
+  final List<SubServiceItem> subServiceItems;
 
   ServiceItem({
     required this.id,
@@ -25,16 +25,16 @@ class ServiceItem {
 
   factory ServiceItem.fromJson(Map<String, dynamic> json) {
     return ServiceItem(
-      id: json['id'],
-      title: json['title'],
-      description: json['description'],
-      priceMin: json['price_min'],
-      priceMax: json['price_max'],
-      iconName: json['icon_name'],
-      iconColor: json['icon_color'],
-      isActive: json['is_active'],
+      id: json['id'] ?? 0,
+      title: json['title'] ?? '',
+      description: json['description'] ?? '',
+      priceMin: json['priceMin'] ?? 0,
+      priceMax: json['priceMax'] ?? 0,
+      iconName: json['iconName'] ?? 'handyman',
+      iconColor: json['iconColor'] ?? '#3B82F6',
+      isActive: json['isActive'] == 1 || json['isActive'] == true,
       subServiceItems:
-          (json['sub_service_items'] as List<dynamic>?)
+          (json['subServiceItems'] as List<dynamic>?)
               ?.map((e) => SubServiceItem.fromJson(e))
               .toList() ??
           [],

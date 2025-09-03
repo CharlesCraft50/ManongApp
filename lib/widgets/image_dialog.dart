@@ -3,9 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:manong_application/theme/colors.dart';
 
 class ImageDialog extends StatelessWidget {
-  final File image;
+  final File? image;
+  final String? imageString;
 
-  const ImageDialog({required this.image, super.key});
+  const ImageDialog({this.image, super.key, this.imageString});
 
   @override
   Widget build(BuildContext context) {
@@ -16,7 +17,9 @@ class ImageDialog extends StatelessWidget {
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
-            child: Image.file(image),
+            child: imageString != null
+                ? Image.network(imageString!)
+                : Image.file(image!),
           ),
           Positioned(
             top: 8,

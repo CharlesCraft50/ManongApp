@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:logging/logging.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:manong_application/api/service_item.dart';
+import 'package:manong_application/api/service_item_api_service.dart';
 import 'package:manong_application/models/service_item.dart';
 import 'package:manong_application/providers/bottom_nav_provider.dart';
 import 'package:manong_application/theme/colors.dart';
 import 'package:manong_application/utils/color_utils.dart';
 import 'package:manong_application/widgets/gradient_header_container.dart';
-import 'package:manong_application/widgets/gradient_text.dart';
 import 'package:manong_application/widgets/manong_icon.dart';
 import 'package:manong_application/widgets/manong_representational_icon.dart';
 import 'package:manong_application/widgets/service_card_lite.dart';
@@ -17,14 +17,16 @@ class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key, this.token});
 
   @override
-  _HomeScreenState createState() => _HomeScreenState();
+  State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  late Logger logger;
   List<ServiceItem> _allServiceItems = [];
   List<ServiceItem> _filteredServiceItems = [];
   bool _isLoading = true;
   String? _error;
+  late ServiceItemApiService serviceItemApiService;
 
   final TextEditingController _firstSearchController = TextEditingController();
   final TextEditingController _secondSearchController = TextEditingController();
@@ -32,7 +34,8 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-
+    logger = Logger('HomeScreen');
+    serviceItemApiService = ServiceItemApiService();
     _loadServiceItems();
   }
 
@@ -45,7 +48,8 @@ class _HomeScreenState extends State<HomeScreen> {
         _error = null;
       });
 
-      final serviceItems = await fetchServiceItemsCacheFirst();
+      final serviceItems = await serviceItemApiService
+          .fetchServiceItemsCacheFirst();
 
       // Add this mounted check before setState
       if (!mounted) return;

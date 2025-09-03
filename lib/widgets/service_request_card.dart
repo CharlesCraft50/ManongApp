@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:manong_application/models/payment_status.dart';
 import 'package:manong_application/models/service_request.dart';
 import 'package:manong_application/theme/colors.dart';
 import 'package:manong_application/utils/color_utils.dart';
+import 'package:manong_application/utils/string_extensions.dart';
 import 'package:manong_application/widgets/icon_card.dart';
 
 class ServiceRequestCard extends StatelessWidget {
@@ -22,39 +24,9 @@ class ServiceRequestCard extends StatelessWidget {
 
     if (manongName.isNotEmpty) {
       final firstName = manongName.split(' ').first;
-      return 'Manong $firstName • $status';
-    }
-
-    return status;
-  }
-
-  Color _getStatusColor(String? status) {
-    switch (status?.toLowerCase()) {
-      case 'pending':
-        return Colors.orange;
-      case 'accepted':
-        return Colors.blue;
-      case 'completed':
-        return Colors.green;
-      case 'cancelled':
-        return Colors.red;
-      default:
-        return Colors.grey;
-    }
-  }
-
-  Color _getStatusBorderColor(String? status) {
-    switch (status?.toLowerCase()) {
-      case 'pending':
-        return Colors.orange.shade700;
-      case 'accepted':
-        return Colors.blue.shade700;
-      case 'completed':
-        return Colors.green.shade700;
-      case 'cancelled':
-        return Colors.red.shade700;
-      default:
-        return Colors.grey.shade700;
+      return 'Manong $firstName • ${status.capitalize()}';
+    } else {
+      return '${status.capitalize()} Payment';
     }
   }
 
@@ -80,6 +52,10 @@ class ServiceRequestCard extends StatelessWidget {
     final manongName = serviceRequestItem.manong?.name ?? '';
     final manongFirstName = manongName.split(' ').first;
     final status = serviceRequestItem.status;
+    final finalStatus =
+        manongName.isEmpty && serviceRequestItem.paymentStatus != null
+        ? serviceRequestItem.paymentStatus!.value
+        : status;
 
     return Card(
       color: AppColorScheme.backgroundGrey,
@@ -122,9 +98,9 @@ class ServiceRequestCard extends StatelessWidget {
                     Container(
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(16),
-                        color: _getStatusColor(status).withOpacity(0.1),
+                        color: getStatusColor(finalStatus).withOpacity(0.1),
                         border: Border.all(
-                          color: _getStatusBorderColor(status),
+                          color: getStatusBorderColor(finalStatus),
                           width: 1,
                         ),
                       ),
@@ -136,7 +112,7 @@ class ServiceRequestCard extends StatelessWidget {
                         _getStatusText(),
                         style: TextStyle(
                           fontSize: 11,
-                          color: _getStatusBorderColor(status),
+                          color: getStatusBorderColor(finalStatus),
                           fontWeight: FontWeight.w500,
                         ),
                       ),
